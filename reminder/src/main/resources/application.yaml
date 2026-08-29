@@ -1,0 +1,106 @@
+server:
+  port: 8080
+springdoc:
+  swagger-ui:
+    persist-authorization: true
+    operations-sorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+
+reminder:
+  idempotency:
+    retention: PT24H
+    cleanup-initial-delay: PT1M
+    cleanup-interval: PT1H
+  email:
+    retry:
+      max-attempts: 3
+      initial-delay: PT1M
+
+spring:
+  config:
+    import: optional:file:./.env[.properties]
+  application:
+    name: reminder-rest
+  datasource:
+    url: jdbc:postgresql://localhost:5432/reminder-rest
+    username: postgres
+    password: postgres
+  jpa:
+    show-sql: true
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.default_batch_fetch_size: 25
+    open-in-view: false
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
+  
+
+  quartz:
+    job-store-type: jdbc
+    scheduler-name: reminder-scheduler
+    auto-startup: true
+    wait-for-jobs-to-complete-on-shutdown: false
+    jdbc:
+      initialize-schema: never
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: reminder-scheduler
+            # Single-instance setup. Enable instanceId=AUTO and isClustered=true before scaling.
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool
+            threadCount: 5
+            threadPriority: 5
+            makeThreadsDaemons: false
+          jobStore:
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            tablePrefix: QRTZ_
+            useProperties: true
+  
+  
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: danil18124@gmail.com 
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 10000
+          writetimeout: 10000
+
+
+
+
+security:
+  jwt:
+    issuer: auth-service
+    audience: reminder-rest
+    rsa:
+      public-key: |-
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnF0Q8vV3dR6k5I9Cuajn
+        PjQFqCRtcFnFhdGF+6FkN4VgMqdMhzw9+2Prdxo2qM4iqimsnA8qWu7VRf+e1UKi
+        Vn2lTq/RuJLW7Vq/2p+xrtxHTOYY6JcNpJQSQiopsJmfR8cBj/TIY9AbHB7S/QfO
+        ZX1yDXdiTsUkrWZ0q3z1bjBBtFm72uYj82c1o9WTdO+6IHdwHtvK96YtzoFJLIXN
+        ONZ/t3+0YXkI8YaA+/tXCto92aaEUKpQt9MMQgoyskX5doTL6jQyH/Km4dVEQQdo
+        ud40dkhYw/2/z1wNylajdib7aEz3moz4QL9OauOdbxQLs79GqreLzG5P8yjPhx6F
+        swIDAQAB
+        -----END PUBLIC KEY-----

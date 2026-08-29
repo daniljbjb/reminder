@@ -1,0 +1,374 @@
+{
+  "info": {
+    "_postman_id": "2e42ab37-5ea7-4f4d-9694-9d19cc60c412",
+    "name": "Reminder REST API - automated scenarios",
+    "description": "Повторяемый интеграционный сценарий Reminder REST API. Укажите JWT в accessToken и запускайте всю коллекцию по порядку. Сценарий сам создаёт тестовые данные, проверяет их и удаляет.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "timezone", "value": "Asia/Qyzylorda" },
+    { "key": "runId", "value": "" },
+    { "key": "testTitle", "value": "" },
+    { "key": "updatedTitle", "value": "" },
+    { "key": "futureRemind", "value": "" },
+    { "key": "searchDate", "value": "" },
+    { "key": "rangeStart", "value": "" },
+    { "key": "rangeEnd", "value": "" },
+    { "key": "createKey", "value": "" },
+    { "key": "updateKey", "value": "" },
+    { "key": "reminderId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00. Security - request without JWT returns 401",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/reminder/sort/title?page=0&size=3"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Unauthorized request is rejected', () => pm.response.to.have.status(401));"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "01. Create reminder",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const runId = pm.variables.replaceIn('{{$guid}}').slice(0, 8);",
+              "const future = new Date(Date.now() + 48 * 60 * 60 * 1000);",
+              "future.setUTCHours(12, 0, 0, 0);",
+              "const searchDate = future.toISOString().slice(0, 10);",
+              "pm.collectionVariables.set('runId', runId);",
+              "pm.collectionVariables.set('testTitle', `Postman ${runId}`);",
+              "pm.collectionVariables.set('updatedTitle', `Updated Postman ${runId}`);",
+              "pm.collectionVariables.set('futureRemind', future.toISOString().replace(/\\.\\d{3}Z$/, ''));",
+              "pm.collectionVariables.set('searchDate', searchDate);",
+              "pm.collectionVariables.set('rangeStart', `${searchDate}T00:00:00Z`);",
+              "pm.collectionVariables.set('rangeEnd', `${searchDate}T23:59:59Z`);",
+              "pm.collectionVariables.set('createKey', pm.variables.replaceIn('{{$guid}}'));",
+              "pm.collectionVariables.set('updateKey', pm.variables.replaceIn('{{$guid}}'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "pm.test('Location header points to created reminder', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/v1\\/reminder\\/\\d+$/));",
+              "const body = pm.response.json();",
+              "pm.test('Created reminder has expected data', () => {",
+              "  pm.expect(body.id).to.be.a('number');",
+              "  pm.expect(body.title).to.eql(pm.collectionVariables.get('testTitle'));",
+              "  pm.expect(body.description).to.eql('Created by automated Postman run');",
+              "  pm.expect(body.remind).to.be.a('string');",
+              "  pm.expect(body.userId).to.match(/^[0-9a-f-]{36}$/i);",
+              "});",
+              "pm.collectionVariables.set('reminderId', String(body.id));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Timezone", "value": "{{timezone}}" },
+          { "key": "Idempotency-Key", "value": "{{createKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{testTitle}}\",\n  \"description\": \"Created by automated Postman run\",\n  \"remind\": \"{{futureRemind}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder"
+      }
+    },
+    {
+      "name": "02. Replay create with same idempotency key",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Timezone", "value": "{{timezone}}" },
+          { "key": "Idempotency-Key", "value": "{{createKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{testTitle}}\",\n  \"description\": \"Created by automated Postman run\",\n  \"remind\": \"{{futureRemind}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Replay returns 201', () => pm.response.to.have.status(201));",
+            "pm.test('Replay returns the same reminder', () => pm.expect(String(pm.response.json().id)).to.eql(pm.collectionVariables.get('reminderId')));"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "03. Search created reminder by title",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder?title={{testTitle}}&page=0&size=10&sort=title,desc"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.test('Response is a Spring page', () => { pm.expect(body.content).to.be.an('array'); pm.expect(body.totalElements).to.be.a('number'); });",
+            "pm.test('Created reminder is found exactly once', () => {",
+            "  const matches = body.content.filter(x => String(x.id) === pm.collectionVariables.get('reminderId'));",
+            "  pm.expect(matches).to.have.lengthOf(1);",
+            "  pm.expect(matches[0].title).to.eql(pm.collectionVariables.get('testTitle'));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "04. Search created reminder by date",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder/search-by-date?date={{searchDate}}&page=0&size=20&sort=remind,asc"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "pm.test('Created reminder is present for its date', () => { const ids = pm.response.json().content.map(x => String(x.id)); pm.expect(ids).to.include(pm.collectionVariables.get('reminderId')); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "05. Filter created reminder by date range",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder/filter/date?start={{rangeStart}}&end={{rangeEnd}}&page=0&size=20&sort=remind,asc"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "pm.test('Created reminder is inside the range', () => { const ids = pm.response.json().content.map(x => String(x.id)); pm.expect(ids).to.include(pm.collectionVariables.get('reminderId')); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "06. Update created reminder",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Timezone", "value": "{{timezone}}" },
+          { "key": "Idempotency-Key", "value": "{{updateKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{updatedTitle}}\",\n  \"description\": \"Updated by automated Postman run\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder/{{reminderId}}"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.test('Reminder is updated', () => { pm.expect(String(body.id)).to.eql(pm.collectionVariables.get('reminderId')); pm.expect(body.title).to.eql(pm.collectionVariables.get('updatedTitle')); pm.expect(body.description).to.eql('Updated by automated Postman run'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "07. Replay update with same idempotency key",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Timezone", "value": "{{timezone}}" },
+          { "key": "Idempotency-Key", "value": "{{updateKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{updatedTitle}}\",\n  \"description\": \"Updated by automated Postman run\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder/{{reminderId}}"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Replay returns 200', () => pm.response.to.have.status(200));",
+            "pm.test('Replay returns same updated reminder', () => { const body = pm.response.json(); pm.expect(String(body.id)).to.eql(pm.collectionVariables.get('reminderId')); pm.expect(body.title).to.eql(pm.collectionVariables.get('updatedTitle')); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "08. Validation - invalid create payload returns 400",
+      "event": [{
+        "listen": "prerequest",
+        "script": { "type": "text/javascript", "exec": ["pm.variables.set('invalidCreateKey', pm.variables.replaceIn('{{$guid}}'));"] }
+      }, {
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+            "const body = pm.response.json();",
+            "pm.test('Validation error has documented shape', () => { pm.expect(body.code).to.eql('VALIDATION_ERROR'); pm.expect(body.message).to.eql('Invalid input data'); pm.expect(body.details).to.be.an('object'); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "{{invalidCreateKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"\",\n  \"description\": \"x\",\n  \"remind\": \"2020-01-01T00:00:00\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder"
+      }
+    },
+    {
+      "name": "09. Validation - missing Idempotency-Key returns 400",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Valid title\",\n  \"description\": \"Valid description\",\n  \"remind\": \"{{futureRemind}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+            "pm.test('Missing header is identified', () => { const body = pm.response.json(); pm.expect(body.code).to.eql('MISSING_REQUEST_HEADER'); pm.expect(body.details).to.have.property('Idempotency-Key'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "10. Validation - reversed date range returns 400",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder/filter/date?start={{rangeEnd}}&end={{rangeStart}}&page=0&size=3"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+            "pm.test('Error response contains code and details', () => { const body = pm.response.json(); pm.expect(body.code).to.be.a('string'); pm.expect(body.details).to.be.an('object'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "11. Not found - delete unknown reminder returns 404",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/reminder/9223372036854775807"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+            "pm.test('Problem Detail describes missing reminder', () => { const body = pm.response.json(); pm.expect(body.status).to.eql(404); pm.expect(body.title).to.eql('Reminder not found'); pm.expect(body.detail).to.be.a('string'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "12. Cleanup - delete created reminder",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/reminder/{{reminderId}}"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 204', () => pm.response.to.have.status(204));",
+            "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "13. Verify cleanup - deleting again returns 404",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/reminder/{{reminderId}}"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Deleted reminder no longer exists', () => pm.response.to.have.status(404));"
+          ]
+        }
+      }]
+    }
+  ]
+}

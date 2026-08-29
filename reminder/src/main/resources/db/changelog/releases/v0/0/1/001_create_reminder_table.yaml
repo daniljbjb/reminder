@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-reminder-seq-and-table
+      author: me
+      changes:
+
+        - createSequence:
+            sequenceName: reminder_seq
+            startValue: 1
+            incrementBy: 5
+
+        - createTable:
+            tableName: reminders
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_reminders
+                    nullable: false
+
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: VARCHAR(4096)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: remind
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+
+        - addDefaultValue:
+            tableName: reminders
+            columnName: id
+            defaultValueSequenceNext: reminder_seq
+
+        - createIndex:
+            tableName: reminders
+            indexName: idx_reminders_user_id_remind
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: remind
+        
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+        - sql:
+            sql: |
+              CREATE INDEX idx_reminders_title_trgm
+              ON reminders
+              USING gin (title gin_trgm_ops);

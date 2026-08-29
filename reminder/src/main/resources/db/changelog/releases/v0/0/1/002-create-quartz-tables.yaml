@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-quartz-tables
+      author: me
+      changes:
+        - sqlFile:
+            path: db/changelog/releases/v0/0/1/quartz_tables_postgres.sql
+            relativeToChangelogFile: false
+            splitStatements: true
+            stripComments: false
+            
+
+        

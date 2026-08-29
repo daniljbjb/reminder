@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: reminder-auth-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/reminder-auth
+    username: postgres
+    password: postgres
+  jpa:
+    show-sql: true
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.default_batch_fetch_size: 25
+    open-in-view: false
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml    
+  security:
+    oauth2:
+      client:
+        registration:
+          google:                                 
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - email
+              - profile
+        provider:
+          google:                                 
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+                
+server:
+  port: 8082
+  forward-headers-strategy: framework
+    
+security:
+  oauth:
+    client-callback-url: ${REMINDER_CLIENT_PUBLIC_BASE_URL:http://localhost:8081}/client/reminder/auth/callback
+  exchange:
+    username: client-service
+    password: ${AUTH_CLIENT_SECRET}
+    code-ttl-seconds: 60
+    
+  
+  jwt:
+    issuer: auth-service
+    audience: reminder-rest, reminder-client
+    access-ttl-seconds: 1200
+    rsa:
+      public-key: file:./secrets/jwt-public.pem
+      private-key: file:./secrets/jwt-private.pem
+        

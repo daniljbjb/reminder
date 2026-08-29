@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-user-roles-table
+      author: danil
+      changes:
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: role
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+
+        # Защита от дублей ролей у одного пользователя
+        - addPrimaryKey:
+            tableName: user_roles
+            columnNames: user_id,role
+            constraintName: pk_user_roles
+
+        # FK → users.id
+        - addForeignKeyConstraint:
+            constraintName: fk_user_roles_user_id
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        # Защита от пустой строки роли
+#        - addCheckConstraint:
+#            tableName: user_roles
+#            constraintName: chk_user_roles_role_not_empty
+#            checkConstraint: "role <> ''"
+
+      rollback:
+        - dropTable:
+            tableName: user_roles

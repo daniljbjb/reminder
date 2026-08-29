@@ -1,0 +1,146 @@
+{
+  "info": {
+    "_postman_id": "2e42ab37-5ea7-4f4d-9694-9d19cc60c412",
+    "name": "Reminder REST API",
+    "description": "Все запросы к reminder REST service. Вставьте JWT в переменную accessToken и запустите коллекцию по порядку через Collection Runner.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "event": [{
+    "listen": "prerequest",
+    "script": {
+      "type": "text/javascript",
+      "exec": [
+        "const future = new Date(Date.now() + 24 * 60 * 60 * 1000);",
+        "pm.variables.set('futureRemind', future.toISOString().replace(/\\.\\d{3}Z$/, ''));",
+        "pm.variables.set('idempotencyKey', pm.variables.replaceIn('{{$guid}}'));"
+      ]
+    }
+  }],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "timezone", "value": "Asia/Qyzylorda" },
+    { "key": "reminderId", "value": "1" },
+    { "key": "searchTitle", "value": "Postman" },
+    { "key": "searchDate", "value": "2026-03-20" },
+    { "key": "rangeStart", "value": "2026-03-20T00:00:00Z" },
+    { "key": "rangeEnd", "value": "2026-03-21T00:00:00Z" }
+  ],
+  "item": [
+    {
+      "name": "1. Create reminder",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Timezone", "value": "{{timezone}}" },
+          { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman reminder\",\n  \"description\": \"Created by Postman\",\n  \"remind\": \"{{futureRemind}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+            "if (pm.response.code === 201) {",
+            "  pm.collectionVariables.set('reminderId', String(pm.response.json().id));",
+            "}"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "2. Find reminders sorted by title",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder/sort/title?page=0&size=3&sort=title,desc"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "3. Find reminders sorted by date",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder/sort/date?page=0&size=3&sort=remind,desc"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "4. Search reminders by title",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder?title={{searchTitle}}&page=0&size=3&sort=title,desc"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "5. Search reminders by date",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder/search-by-date?date={{searchDate}}&page=0&size=3&sort=remind,asc"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "6. Filter reminders by date range",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Timezone", "value": "{{timezone}}" }],
+        "url": "{{baseUrl}}/api/v1/reminder/filter/date?start={{rangeStart}}&end={{rangeEnd}}&page=0&size=5&sort=remind,asc"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "7. Update created reminder",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Timezone", "value": "{{timezone}}" },
+          { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated Postman reminder\",\n  \"description\": \"Updated by Postman\",\n  \"remind\": \"{{futureRemind}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/v1/reminder/{{reminderId}}"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "8. Add sample reminders",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/reminder/addsomereminders",
+        "description": "Добавляет тестовые напоминания и автоматически их не удаляет."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "9. Delete created reminder",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/reminder/{{reminderId}}"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 204', () => pm.response.to.have.status(204));"] } }]
+    }
+  ]
+}
