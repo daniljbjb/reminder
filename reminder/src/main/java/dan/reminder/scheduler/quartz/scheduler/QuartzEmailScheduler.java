@@ -6,7 +6,6 @@ package dan.reminder.scheduler.quartz.scheduler;
 
 import dan.reminder.model.Reminder;
 import dan.reminder.scheduler.quartz.job.EmailReminderJob;
-import java.time.ZoneId;
 import java.util.Date;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +20,7 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.TriggerKey;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -46,7 +46,7 @@ public class QuartzEmailScheduler {
         dataMap.put(EMAIL_KEY, userEmail);
         dataMap.put(SUBJECT_KEY, reminder.getTitle());
         dataMap.put(MESSAGE_KEY, Objects.requireNonNullElse(reminder.getDescription(), "Empty description"));
-        dataMap.put(ATTEMPT_KEY, "1");
+        dataMap.put(ATTEMPT_KEY, 1);
 
         JobDetail jobDetail = JobBuilder.newJob(EmailReminderJob.class)
                 .withIdentity(jobKey(reminder.getId()))
@@ -87,7 +87,7 @@ public class QuartzEmailScheduler {
         Trigger retryTrigger = TriggerBuilder.newTrigger()
                 .withIdentity(retryTriggerKey(jobDetail.getKey(), nextAttempt))
                 .forJob(jobDetail.getKey())
-                .usingJobData(ATTEMPT_KEY, Integer.toString(nextAttempt))
+                .usingJobData(ATTEMPT_KEY, nextAttempt)
                 .startAt(Date.from(java.time.Instant.now().plus(delay)))
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule()
                         .withMisfireHandlingInstructionFireNow())
@@ -102,16 +102,11 @@ public class QuartzEmailScheduler {
     }
 
     /**
-     * TODO:
-     * 1) Quartz job recreation is implemented as two separate operations,
-     *    which may lead to inconsistency:
-     *    - old job is deleted, but new job is not created
-     *    - new job state may diverge from reminder state if one step fails
-     *
-     * 2) Error handling for recreation is simplified:
-     *    - delete and schedule are executed sequentially
-     *    - partial success is possible
+     * Replaces the job and all its triggers in the same database transaction.
+     * Quartz must use Spring's LocalDataSourceJobStore and the reminder DataSource
+     * so a scheduling failure rolls back the deletion and the reminder update.
      */
+    @Transactional
     public void recreate(Reminder reminder, String userEmail) {
         delete(reminder.getId());
         schedule(reminder, userEmail);

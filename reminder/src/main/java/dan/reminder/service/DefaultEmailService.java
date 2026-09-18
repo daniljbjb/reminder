@@ -4,9 +4,11 @@
  */
 package dan.reminder.service;
 
+import dan.reminder.exception.EmailDeliveryException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +31,11 @@ public class DefaultEmailService implements EmailService {
         message.setText(body); // description
         message.setFrom("danil18124@gmail.com");
 
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+        } catch (MailException ex) {
+            throw new EmailDeliveryException("Failed to deliver email to " + to, ex);
+        }
         log.info("Email reminder sent to {}", to);
     }
 }

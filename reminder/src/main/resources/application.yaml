@@ -68,7 +68,8 @@ spring:
           jobStore:
             driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
             tablePrefix: QRTZ_
-            useProperties: true
+            # Object serialization is required because attempt is stored as an Integer.
+            useProperties: false
   
   
   mail:
