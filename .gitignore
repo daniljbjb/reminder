@@ -1,0 +1,8 @@
+.env
+secrets/jwt-private.pem
+
+**/target/
+**/.idea/
+**/*.iml
+**/.env
+**/secrets/jwt-private.pem

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Jwt page</title>
+        <link rel="stylesheet" th:href="@{/css/jwtcss.css}">
+    </head>
+    <body>
+
+        <section>
+            <a th:href="@{/client/reminder/main/bytitle}">
+                На главную страницу
+            </a>
+        </section>
+
+        <main>
+
+            <section>
+                <p>Ниже отображается JWT-токен, информация о времени его действия и набор claims.</p>
+            </section>
+
+            <section>
+                <h2>JWT для REST-сервиса</h2>
+
+                <pre id="jwtToken" th:text="'Bearer ' + ${jwt}"></pre>
+
+                <button id="copyBtn" onclick="copyToken()">Скопировать токен</button>
+            </section>
+
+            <section>
+                <h2>Информация о токене</h2>
+
+                <div class="token-info-card">
+                    <h3>Общее время жизни токена</h3>
+                    <p>
+                        <span th:text="${ttlSeconds}"></span>
+                        <span> секунд</span>
+                    </p>
+                </div>
+
+                <div class="token-info-card">
+                    <h3>Оставшееся время жизни токена</h3>
+                    <p>
+                        <span th:text="${remainingSeconds}"></span>
+                        <span> секунд</span>
+                    </p>
+                </div>
+            </section>
+
+            <section>
+                <h2>JWT Claims</h2>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Claim</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="entry : ${claims}">
+                            <td th:text="${entry.key}"></td>
+                            <td th:text="${entry.value}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>Пояснения</h2>
+
+                <article>
+                    <h3>iss (Issuer)</h3>
+                    <p>
+                        Сервис, который выпустил JWT-токен. Обычно это сервис аутентификации.
+                        Получатель токена может проверить это поле, чтобы убедиться, что токен
+                        выдан доверенным источником.
+                    </p>
+                </article>
+
+                <article>
+                    <h3>sub (Subject)</h3>
+                    <p>
+                        Идентификатор пользователя внутри токена. Чаще всего это id пользователя
+                        в системе или другой уникальный идентификатор.
+                    </p>
+                </article>
+
+                <article>
+                    <h3>aud (Audience)</h3>
+                    <p>
+                        Получатель токена. Это сервис или группа сервисов, для которых предназначен
+                        данный JWT. Сервис может проверить это поле, чтобы убедиться, что токен
+                        предназначен именно для него.
+                    </p>
+                </article>
+
+                <article>
+                    <h3>exp (Expiration Time)</h3>
+                    <p>
+                        Момент времени, когда токен перестаёт быть действительным. После этого
+                        времени сервер должен отклонять запросы с таким токеном.
+                    </p>
+                </article>
+
+                <article>
+                    <h3>iat (Issued At)</h3>
+                    <p>
+                        Момент времени, когда токен был создан. Используется для понимания возраста
+                        токена и иногда для проверки его валидности.
+                    </p>
+                </article>
+
+                <article>
+                    <h3>roles</h3>
+                    <p>
+                        Роли пользователя в системе, например USER или ADMIN. Эти данные используются
+                        сервисами для проверки прав доступа и принятия решений об авторизации.
+                    </p>
+                </article>
+            </section>
+        </main>
+
+        <script>
+            function copyToken() {
+            const tokenText = document.getElementById("jwtToken").innerText;
+            const btn = document.getElementById("copyBtn");
+
+            navigator.clipboard.writeText(tokenText)
+            .then(() => {
+            btn.innerText = "Скопировано!";
+            btn.disabled = true;
+
+            setTimeout(() => {
+            btn.innerText = "Скопировать токен";
+            btn.disabled = false;
+            }, 2000);
+            })
+            .catch(err => {
+            console.error("Ошибка копирования:", err);
+            });
+            }
+        </script>
+
+    </body>
+
+</html>

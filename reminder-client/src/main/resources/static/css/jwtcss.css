@@ -1,0 +1,143 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    background: #f5f7fa;
+    color: #222;
+}
+
+main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+body > section:first-of-type {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 24px 0 24px;
+}
+
+section {
+    margin-bottom: 24px;
+}
+
+main > section {
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 10px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+a {
+    color: #1f5fbf;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 22px;
+    line-height: 1.3;
+}
+
+h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 18px;
+    line-height: 1.3;
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+pre {
+    margin: 0 0 16px 0;
+    padding: 16px;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    background: #f8f9fb;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+button {
+    display: inline-block;
+    padding: 10px 16px;
+    border: 1px solid #2d6cdf;
+    border-radius: 8px;
+    background: #2d6cdf;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #2457b3;
+}
+
+button:disabled {
+    background: #9fb7e8;
+    border-color: #9fb7e8;
+    cursor: not-allowed;
+}
+
+.token-info-card {
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f8f9fb;
+    margin-bottom: 16px;
+}
+
+.token-info-card:last-child {
+    margin-bottom: 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #d8dee6;
+    background: white;
+}
+
+thead {
+    background: #eef3f8;
+}
+
+th,
+td {
+    border: 1px solid #d8dee6;
+    padding: 12px;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+th {
+    font-weight: bold;
+}
+
+article {
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fafbfd;
+    margin-bottom: 14px;
+}
+
+article:last-child {
+    margin-bottom: 0;
+}

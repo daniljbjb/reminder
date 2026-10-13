@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-enable-pgtrgm-and-create-reminders-title-index
+      author: me
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+        - sql:
+            sql: |
+              CREATE INDEX IF NOT EXISTS idx_reminders_title_trgm
+              ON reminders
+              USING gin (title gin_trgm_ops);

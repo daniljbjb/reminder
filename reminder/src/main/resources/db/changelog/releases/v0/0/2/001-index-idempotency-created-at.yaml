@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-index-idempotency-created-at
+      author: danil
+      changes:
+        - createIndex:
+            tableName: idempotency_record
+            indexName: idx_idempotency_record_created_at
+            columns:
+              - column:
+                  name: created_at

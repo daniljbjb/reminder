@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Main page</title>
+        <link rel="stylesheet" th:href="@{/css/styles.css}">
+    </head>
+    <body>
+        <main class="page-content">
+
+            <section class="page-header">
+                <div class="page-header__title-block">
+                    <h1 th:text="${authenticated} ? 'Вы вошли в систему' : 'Войдите, чтобы взаимодействовать с напоминаниями'">
+                        Список напоминаний
+                    </h1>
+                </div>
+
+                <div class="page-header__actions" th:if="${authenticated}">
+                    <form th:action="@{/client/reminder/logout}" method="post">
+                        <button type="submit" class="btn btn--primary">
+                            Выйти
+                        </button>
+                    </form>
+
+                    <a th:href="@{/client/reminder/auth/jwtpage}" class="btn">
+                        JWT info
+                    </a>
+                </div>
+
+                <div class="page-header__actions" th:unless="${authenticated}">
+                    <a th:href="${authPublicLoginUrl}" class="btn btn--primary">
+                        Войти
+                    </a>
+                </div>
+            </section>
+
+            <section th:if="${authError}" class="empty-state">
+                <p th:text="${authError}">Не удалось выполнить вход.</p>
+            </section>
+
+            <section th:if="${authenticated}" class="reminders-section">
+
+                <div th:if="${serviceError}" th:text="${serviceError}" class="empty-state">
+                    Сервис напоминаний временно недоступен
+                </div>
+
+                <div th:if="${serviceError == null and #lists.isEmpty(reminders)}" class="empty-state">
+                    Напоминаний пока нет
+                </div>
+
+                <div th:unless="${#lists.isEmpty(reminders)}" class="reminders-grid">
+                    <article th:each="reminder : ${reminders}" class="reminder-card">
+                        <p><strong>ID:</strong> <span th:text="${reminder.id}"></span></p>
+                        <p><strong>Название:</strong> <span th:text="${reminder.title}"></span></p>
+                        <p><strong>Описание:</strong> <span th:text="${reminder.description}"></span></p>
+                        <p><strong>Время:</strong> <span class="remind-time" th:data-utc="${reminder.remind}"></span>
+                        </p>
+                    </article>
+                </div>
+
+            </section>
+
+            <section th:if="${authenticated == true and totalPages != null and totalPages > 0}" class="pagination-section">
+                <div class="pagination">
+                    <a th:if="${currentPage > 0}"
+                       th:href="@{/client/reminder/main/{sortType}(sortType=${sort}, page=${currentPage - 1}, size=${size})}"
+                       class="pagination__link">
+                        ← Назад
+                    </a>
+                    <span th:unless="${currentPage > 0}" class="pagination__disabled">
+                        ← Назад
+                    </span>
+
+                    <span class="pagination__info">
+                        Страница <span th:text="${currentPage + 1}">1</span>
+                        из
+                        <span th:text="${totalPages}">1</span>
+                    </span>
+
+                    <a th:if="${currentPage + 1 < totalPages}"
+                       th:href="@{/client/reminder/main/{sortType}(sortType=${sort}, page=${currentPage + 1}, size=${size})}"
+                       class="pagination__link">
+                        Вперёд →
+                    </a>
+                    <span th:unless="${currentPage + 1 < totalPages}" class="pagination__disabled">
+                        Вперёд →
+                    </span>
+                </div>
+
+            </section>
+
+            <br><br>
+
+            <section th:if="${authenticated}" >
+                <form th:action="@{/client/reminder/addsomereminders}" method="post">
+                    <button type="submit" class="btn btn--primary">
+                        Добавить тестовые напоминания
+                    </button>
+                </form>
+            </section>
+
+
+        </main>
+
+        <script>
+            const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const timezoneCookie = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('CLIENT_TIMEZONE='));
+            const savedTimezone = timezoneCookie
+                    ? timezoneCookie.substring('CLIENT_TIMEZONE='.length)
+                    : null;
+
+            if (browserTimezone && savedTimezone !== browserTimezone) {
+                document.cookie = 'CLIENT_TIMEZONE=' + browserTimezone
+                        + '; Path=/; SameSite=Lax; Max-Age=31536000';
+                window.location.reload();
+            }
+
+            function pad(value) {
+            return String(value).padStart(2, '0');
+            }
+
+            document.querySelectorAll('.remind-time').forEach(element => {
+            const utcValue = element.dataset.utc;
+
+            if (!utcValue) return;
+
+            const date = new Date(utcValue);
+
+            const formatted =
+            date.getFullYear() + '-' +
+            pad(date.getMonth() + 1) + '-' +
+            pad(date.getDate()) + ' ' +
+            pad(date.getHours()) + ':' +
+            pad(date.getMinutes()) + ':' +
+            pad(date.getSeconds());
+
+            element.textContent = formatted;
+            });
+        </script>
+
+    </body>
+
+
+</html>

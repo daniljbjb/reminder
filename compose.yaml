@@ -1,0 +1,84 @@
+services:
+  postgres-auth:
+    image: postgres:16
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: reminder-auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d reminder-auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-reminder:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: reminder-rest
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-reminder-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d reminder-rest"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build:
+      context: ./auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/reminder-auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      AUTH_CLIENT_SECRET: ${AUTH_CLIENT_SECRET}
+      REMINDER_CLIENT_PUBLIC_BASE_URL: ${REMINDER_CLIENT_PUBLIC_BASE_URL:-http://localhost:8081}
+    volumes:
+      - ./secrets:/app/secrets:ro
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+
+  reminder:
+    build:
+      context: ./reminder
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-reminder:5432/reminder-rest
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    depends_on:
+      postgres-reminder:
+        condition: service_healthy
+
+  reminder-client:
+    build:
+      context: ./reminder-client
+    environment:
+      REMINDER_REST_BASE_URL: http://reminder:8080
+      AUTH_BASE_URL: http://auth-service:8082
+      AUTH_PUBLIC_BASE_URL: ${AUTH_PUBLIC_BASE_URL:-http://localhost:8082}
+      AUTH_CLIENT_SECRET: ${AUTH_CLIENT_SECRET}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-false}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - reminder
+      - auth-service
+
+volumes:
+  postgres-auth-data:
+  postgres-reminder-data:
