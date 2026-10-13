@@ -14,6 +14,17 @@
 - Сессии не используются, API работает по принципу STATELESS.
 - Swagger/OpenAPI и health-check доступны без авторизации.
 
+### Как настроен Auth-сервис. Настройка Google OAuth2
+
+Для аутентификации через Google в [Google Cloud Console](https://console.cloud.google.com/auth/clients) был создан OAuth2-клиент `reminder-auth-service` типа **Web application**.
+
+Получены `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET`.
+
+В разделе **Authorized redirect URIs** указан адрес:
+```
+http://localhost:8082/login/oauth2/code/google
+```
+
 ## Работа со временем
 
 Для создания напоминания передаются локальная дата, время и часовой пояс в заголовке `X-Timezone`. По умолчанию используется `Asia/Almaty`.
